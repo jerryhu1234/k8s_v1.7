@@ -12,3 +12,4 @@ https://pan.baidu.com/s/1dzQyiq#list/path=%2Fkubernetes1.9.2
 https://github.com/kubernetes/dashboard/releases
 https://zhuanlan.zhihu.com/p/30684413?from_voters_page=true
 https://github.com/rootsongjc/kubernetes-handbook/blob/master/manifests/dashboard-1.7.1/kubernetes-dashboard.yaml
+https://github.com/rootsongjc/kubernetes-handbook/blob/master/manifests/dashboard-1.7.1/admin-role.yaml
