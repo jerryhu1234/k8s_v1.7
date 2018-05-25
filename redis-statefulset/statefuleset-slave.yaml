@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-slave
+  namespace: devops
+  labels:
+    app: redis-slave
+spec:
+  ports:
+    - port: 6379
+  clusterIP: None
+  selector:
+    app: redis-slave
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: redis-slave
+  namespace: devops
+  labels:
+    name: redis-slave
+spec:
+  serviceName: redis-slave
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: redis-slave
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: redis-slave
+        image: harbor.frognew.com/rg/redis:1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379
+        env:
+        - name: REDIS_PASS
+          valueFrom:
+            secretKeyRef:
+              name: devopssecret
+              key: redisAuthPass
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: redis-volume
+          mountPath: /data
+      imagePullSecrets: 
+        - name: regsecret
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-volume
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
