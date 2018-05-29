@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-    name: pv0005
+    name: pv0007
     namespace: devpos
 spec:
     capacity:
@@ -10,5 +10,5 @@ spec:
       - ReadWriteOnce
     persistentVolumeReclaimPolicy: Recycle
     nfs:
-      path: /opt/pv-slave
-      server: 192.168.3.208
+      path: /opt/pv-slave3
+      server: 192.168.3.199

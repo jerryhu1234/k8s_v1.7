@@ -36,10 +36,11 @@ spec:
         - containerPort: 6379
         env:
         - name: REDIS_PASS
-          valueFrom:
-            secretKeyRef:
-              name: devopssecret
-              key: redisAuthPass
+          value: "654321"
+#          valueFrom:
+#            secretKeyRef:
+#              name: devopssecret
+#              key: redisAuthPass
         resources:
           requests:
             memory: "256Mi"

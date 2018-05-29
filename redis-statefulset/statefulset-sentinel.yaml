@@ -37,9 +37,10 @@ spec:
           - name: SENTINEL
             value: "true"
           - name: REDIS_PASS
-            valueFrom:
-              secretKeyRef:
-                name: devopssecret
-                key: redisAuthPass
+            value: "654321"
+#            valueFrom:
+#              secretKeyRef:
+#                name: devopssecret
+#                key: redisAuthPass
       imagePullSecrets: 
         - name: regsecret
