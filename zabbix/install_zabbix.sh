@@ -25,10 +25,10 @@ yum -y install zlib-devel mysql-devel glibc-devel curl-devel gcc automake mysql 
 echo_green "安装zabbix2.4.8"
 yum -y install zabbix-server-mysql zabbix-web-mysql zabbix-agent zabbix-java-gateway
 systemctl restart httpd
-system restart mysqld
+systemctl restart mysql
 #建库
 echo_green "建库zabbix"
-mysqlc=( mysql -h127.0.0.1 -uroot )
+mysqlc=( /usr/bin/mysql -h127.0.0.1 -uroot )
 "${mysqlc[@]}" <<-EOSQL
 create database if not exists zabbix character set utf8;
 grant all privileges on zabbix.* to 'zabbix'@'localhost' identified by '123456';
@@ -37,8 +37,8 @@ quit
 EOSQL
 #导入表
 echo_green "导入表"
-mysql -h127.0.0.1 -uzabbix -p123456 -e 'show databases'| grep zabbix &>/dev/null
-if [ "$?" -eq 1 ]; then 
+mysql -h127.0.0.1 -uzabbix -p123456 zabbix -e 'show tables' | wc -l
+if [ "$?" -eq 0 ]; then 
         mysql -h127.0.0.1 -uzabbix -p123456 zabbix < /usr/share/doc/zabbix-server-mysql-2.4.8/create/schema.sql
         mysql -h127.0.0.1 -uzabbix -p123456 zabbix < /usr/share/doc/zabbix-server-mysql-2.4.8/create/images.sql
         mysql -h127.0.0.1 -uzabbix -p123456 zabbix < /usr/share/doc/zabbix-server-mysql-2.4.8/create/data.sql
@@ -57,6 +57,8 @@ sed -i 's/max_execution_time = 30/max_execution_time = 600/g' /etc/php.ini
 sed -i 's/max_input_time = 60/max_input_time = 600/g' /etc/php.ini
 sed -i 's/memory_limit = 128M/memory_limit = 256M/g' /etc/php.ini
 #配置iptables
+iptables -D INPUT -p tcp --dport 80 -j ACCEPT &>/dev/null
+iptables -D INPUT -p tcp --dport 3306 -j ACCEPT &>/dev/null
 iptables -I INPUT -p tcp --dport 80 -j ACCEPT
 iptables -I INPUT -p tcp --dport 3306 -j ACCEPT
 iptables-save
