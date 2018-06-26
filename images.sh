@@ -8,6 +8,14 @@ KUBE_PAUSE_VERSION=3.0
 ETCD_VERSION=3.0.17
 DNS_VERSION=1.14.4
 
+yum remove docker docker-common docker-selinux docker-engine
+yum install -y yum-utils device-mapper-persistent-data lvm2
+yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+yum makecache fast
+yum install -y docker-ce
+systemctl enable docker
+systemctl start docker
+
 GCR_URL=gcr.io/google_containers
 ALIYUN_URL=registry.cn-hangzhou.aliyuncs.com/szss_k8s
 
