@@ -13,8 +13,15 @@ yum install -y yum-utils device-mapper-persistent-data lvm2
 yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 yum makecache fast
 yum install -y docker-ce
+
 systemctl enable docker
 systemctl start docker
+
+tee -a /etc/sysctl.conf<<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sysctl -p
 
 GCR_URL=gcr.io/google_containers
 ALIYUN_URL=registry.cn-hangzhou.aliyuncs.com/szss_k8s
