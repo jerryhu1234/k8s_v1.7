@@ -41,7 +41,6 @@ metadata:
 
 ---
 # ------------------- Dashboard Role & Role Binding ------------------- #
-
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
@@ -114,12 +113,14 @@ spec:
     spec:
       containers:
       - name: kubernetes-dashboard
-        image: lanny/gcr.io_google_containers_kubernetes-dashboard-amd64:v1.8.1
+        image: registry.cn-hangzhou.aliyuncs.com/peter1009/kubernetes-dashboard-amd64:v1.8.3
         ports:
         - containerPort: 8443
           protocol: TCP
         args:
-          - --auto-generate-certificates
+          #- --auto-generate-certificates
+          - --tls-key-file=dashboard.key
+          - --tls-cert-file=dashboard.crt
           # Uncomment the following line to manually specify Kubernetes API server Host
           # If not specified, Dashboard will attempt to auto discover the API server and connect
           # to it. Uncomment only if the default does not work.
