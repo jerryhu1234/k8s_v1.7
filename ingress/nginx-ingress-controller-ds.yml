@@ -1,0 +1,65 @@
+# nginx ingress pods
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: nginx-ingress-controller
+  labels:
+    app: ingress-nginx
+  namespace: ingress-nginx
+  annotations:
+    component.version: '0.16.0'
+    component.revision: '2'
+spec:
+  template:
+    metadata:
+      labels:
+        app: ingress-nginx
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/ingress: "true"
+      serviceAccount: nginx-ingress-serviceaccount
+      containers:
+        - name: nginx-ingress-controller
+          image: registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:0.16.2
+          args:
+            - /nginx-ingress-controller
+            - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
+            - --configmap=$(POD_NAMESPACE)/nginx-configuration
+            - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services
+            - --udp-services-configmap=$(POD_NAMESPACE)/udp-services
+            - --annotations-prefix=nginx.ingress.kubernetes.io
+            - --publish-service=$(POD_NAMESPACE)/nginx-ingress-lb
+            - --v=2
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+          - name: http
+            containerPort: 80
+          - name: https
+            containerPort: 443
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1

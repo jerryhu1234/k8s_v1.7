@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: helloworld
+  namespace: ci
+  annotations:
+#    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+     - http:
+        paths:
+        - path: /
+          backend:
+            serviceName: jenkins-svc
+            servicePort: 31768
