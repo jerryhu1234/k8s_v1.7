@@ -1,0 +1,127 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  annotations:
+    description: GlusterFS DaemonSet
+    tags: glusterfs
+  labels:
+    glusterfs: daemonset
+  name: glusterfs
+  namespace: heketi
+spec:
+  revisionHistoryLimit: 10
+  template:
+    metadata:
+      labels:
+        glusterfs: pod
+        glusterfs-node: pod
+      name: glusterfs
+    spec:
+      nodeSelector:
+        storagenode: glusterfs
+      containers:
+      - env:
+        - name: GB_GLFS_LRU_COUNT
+          value: "15"
+        - name: TCMU_LOGDIR
+          value: /var/log/glusterfs/gluster-block
+        image: gluster/gluster-centos:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - systemctl status glusterd.service
+          failureThreshold: 15
+          initialDelaySeconds: 40
+          periodSeconds: 25
+          successThreshold: 1
+          timeoutSeconds: 3
+        name: glusterfs
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - systemctl status glusterd.service
+          failureThreshold: 15
+          initialDelaySeconds: 40
+          periodSeconds: 25
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          capabilities: {}
+          privileged: true
+        volumeMounts:
+        - mountPath: /var/lib/heketi
+          name: glusterfs-heketi
+        - mountPath: /run
+          name: glusterfs-run
+        - mountPath: /run/lvm
+          name: glusterfs-lvm
+        - mountPath: /etc/glusterfs
+          name: glusterfs-etc
+        - mountPath: /var/log/glusterfs
+          name: glusterfs-logs
+        - mountPath: /var/lib/glusterd
+          name: glusterfs-config
+        - mountPath: /dev
+          name: glusterfs-dev
+        - mountPath: /var/lib/misc/glusterfsd
+          name: glusterfs-misc
+        - mountPath: /sys/fs/cgroup
+          name: glusterfs-cgroup
+          readOnly: true
+        - mountPath: /etc/ssl
+          name: glusterfs-ssl
+          readOnly: true
+      hostNetwork: true
+      nodeSelector:
+        storagenode: glusterfs
+      restartPolicy: Always
+      volumes:
+      - hostPath:
+          path: /var/lib/heketi
+          type: ""
+        name: glusterfs-heketi
+      - emptyDir: {}
+        name: glusterfs-run
+      - hostPath:
+          path: /run/lvm
+          type: ""
+        name: glusterfs-lvm
+      - hostPath:
+          path: /etc/glusterfs
+          type: ""
+        name: glusterfs-etc
+      - hostPath:
+          path: /var/log/glusterfs
+          type: ""
+        name: glusterfs-logs
+      - hostPath:
+          path: /var/lib/glusterd
+          type: ""
+        name: glusterfs-config
+      - hostPath:
+          path: /dev
+          type: ""
+        name: glusterfs-dev
+      - hostPath:
+          path: /var/lib/misc/glusterfsd
+          type: ""
+        name: glusterfs-misc
+      - hostPath:
+          path: /sys/fs/cgroup
+          type: ""
+        name: glusterfs-cgroup
+      - hostPath:
+          path: /etc/ssl
+          type: ""
+        name: glusterfs-ssl
+  updateStrategy:
+    type: OnDelete

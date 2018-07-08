@@ -1,0 +1,100 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    description: Defines how to deploy Heketi
+  labels:
+    glusterfs: heketi-deployment
+    heketi: deployment
+  name: heketi
+  namespace: heketi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      glusterfs: heketi-pod
+      heketi: pod
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        glusterfs: heketi-pod
+        heketi: pod
+      name: heketi
+    spec:
+      containers:
+      - env:
+        - name: HEKETI_USER_KEY
+        - name: HEKETI_ADMIN_KEY
+        - name: HEKETI_EXECUTOR
+          value: kubernetes
+        - name: HEKETI_FSTAB
+          value: /var/lib/heketi/fstab
+        - name: HEKETI_SNAPSHOT_LIMIT
+          value: "14"
+        - name: HEKETI_KUBE_GLUSTER_DAEMONSET
+          value: "y"
+        image: heketi/heketi:dev
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /hello
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 3
+        name: heketi
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /hello
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 3
+        volumeMounts:
+        - mountPath: /var/lib/heketi
+          name: db
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: heketi-service-account
+      volumes:
+      - name: db
+        hostPath:
+          path: /heketi-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    description: Exposes Heketi Service
+  labels:
+    glusterfs: heketi-service
+    heketi: service
+  name: heketi
+  namespace: heketi
+spec:
+  ports:
+  - name: heketi
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    glusterfs: heketi-pod
+  sessionAffinity: None
+  type: ClusterIP

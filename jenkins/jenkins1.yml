@@ -57,7 +57,8 @@ spec:
           name: home
       volumes:
         - name: home
-          hostPath: /mnt/jenkins
+          hostPath: 
+            path: /mnt/jenkins
 
 ---
 apiVersion: v1

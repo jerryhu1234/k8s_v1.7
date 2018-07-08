@@ -1,0 +1,9 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gluster-heketi
+  namespace: heketi
+provisioner: kubernetes.io/glusterfs
+parameters:
+  resturl: "http://10.97.30.92:8080"
+  restauthenabled: "false"
