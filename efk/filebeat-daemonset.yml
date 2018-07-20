@@ -119,11 +119,20 @@ data:
     # Configure what output to use when sending the data collected by the beat.
     
     #-------------------------- Elasticsearch output ------------------------------
-    output.elasticsearch:
+    #output.elasticsearch:
       # Array of hosts to connect to.
-      hosts: ["elasticsearch-logging.kube-system:9200"]
+    #  hosts: ["elasticsearch-logging.kube-system:9200"]
     
       # Optional protocol and basic auth credentials.
       #protocol: "https"
       #username: "elastic"
       #password: "changeme"
+    #------------------------kafka output ----------------------------------------
+    output.kafka:
+      hosts: ["kafka-svc.kube-system:9093"]
+      topic: 'log-api'
+      partition.round_robin:
+        reachable_only: false
+      required_acks: 1
+      compression: gzip
+      max_message_bytes: 1000000

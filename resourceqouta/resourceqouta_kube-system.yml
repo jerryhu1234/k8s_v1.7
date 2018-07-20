@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-resources
+  namespace: kube-system
+spec:
+  hard:
+    pods: "50"
+    requests.cpu: "6"
+    requests.memory: 12Gi
+    limits.cpu: "8"
+    limits.memory: 24Gi
+
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: object-counts
+  namespace: kube-system
+spec:
+  hard:
+    configmaps: "20"
+    persistentvolumeclaims: "20"
+    replicationcontrollers: "20"
+    secrets: "100"
+    services: "20"
+    services.loadbalancers: "2"
+    services.nodeports: "10"

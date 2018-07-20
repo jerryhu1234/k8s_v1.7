@@ -60,6 +60,10 @@ spec:
     matchLabels:
       k8s-app: fluentd-es
       version: v2.1.0
+  tolerations: 
+    key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
   template:
     metadata:
       labels:

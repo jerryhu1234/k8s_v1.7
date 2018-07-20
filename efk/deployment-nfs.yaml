@@ -1,0 +1,65 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: nfs-kafka-provisioner
+  namespace: kube-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-kafka-provisioner
+    spec:
+      containers:
+        - name: nfs-kafaka-provisioner
+          image: registry.cn-hangzhou.aliyuncs.com/open-ali/nfs-client-provisioner
+          volumeMounts:
+            - name: nfs-kafka-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: k8s.io/nfs-provisioner-kafka
+            - name: NFS_SERVER
+              value: 192.168.42.23
+            - name: NFS_PATH
+              value: /data/kafka
+      volumes:
+        - name: nfs-kafka-root
+          nfs:
+            server: 192.168.42.23
+            path: /data/kafka
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: nfs-zookeeper-provisioner
+  namespace: kube-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-zookeeper-provisioner
+    spec:
+      containers:
+        - name: nfs-zookeeper-provisioner
+          image: registry.cn-hangzhou.aliyuncs.com/open-ali/nfs-client-provisioner
+          volumeMounts:
+            - name: nfs-zookeeper-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: k8s.io/nfs-provisioner-zookeeper
+            - name: NFS_SERVER
+              value: 192.168.42.23
+            - name: NFS_PATH
+              value: /data/zookeeper
+      volumes:
+        - name: nfs-zookeeper-root
+          nfs:
+            server: 192.168.42.23
+            path: /data/zookeeper
