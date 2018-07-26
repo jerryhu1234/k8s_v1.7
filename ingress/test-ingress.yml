@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-phicomm
+  namespace: test
+spec:
+  tls:
+    - hosts:
+      - aitest.phicomm.com
+      # This assumes tls-secret exists and the SSL 
+      # certificate contains a CN for foo.bar.com
+      secretName: test-phicomm
+  rules:
+    - host: aitest.phicomm.com
+      http:
+        paths:
+        - path: /
+          backend:
+            # This assumes http-svc exists and routes to healthy endpoints
+            serviceName: oss-gateway-service
+            servicePort: 9999

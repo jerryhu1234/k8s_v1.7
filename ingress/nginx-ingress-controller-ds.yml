@@ -1,4 +1,5 @@
 # nginx ingress pods
+# https://github.com/kubernetes/ingress-nginx
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:

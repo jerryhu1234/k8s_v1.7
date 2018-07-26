@@ -6,12 +6,12 @@ metadata:
   namespace: ingress-nginx
   labels:
     app: nginx-ingress-lb
-  annotations:
-    service.beta.kubernetes.io/alicloud-loadbalancer-backend-label: "node-role.kubernetes.io/ingress=true"
+#  annotations:
+#    service.beta.kubernetes.io/alicloud-loadbalancer-backend-label: "node-role.kubernetes.io/ingress=true"
 spec:
-  type: LoadBalancer
+  type: NodePort
   # do not route traffic to other nodes
-  externalTrafficPolicy: "Local"
+#  externalTrafficPolicy: "Local"
   ports:
   - port: 80
     name: http
