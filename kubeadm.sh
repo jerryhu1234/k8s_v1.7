@@ -4,6 +4,25 @@
 #如果任何语句的执行结果不是true则应该退出,set -o errexit和set -e作用相同
 set -e
 
+    if [ ! -n "$KUBE_VERSION" ]; then
+        export KUBE_VERSION="1.11.2"
+    fi
+    if [ ! -n "$KUBE_CNI_VERSION" ]; then
+        export KUBE_CNI_VERSION="0.6.0"
+    fi
+    if [ ! -n "$SOCAT_VERSION" ]; then
+        export SOCAT_VERSION="1.7.3.2"
+    fi
+    if [ ! -n "$ETCD_VERSION" ]; then
+        export ETCD_VERSION="3.2.18"
+    fi
+    if [ ! -n "$PAUSE_VERSION" ]; then
+        export PAUSE_VERSION="3.1"
+    fi
+    if [ ! -n "$FLANNEL_VERSION" ]; then
+        export FLANNEL_VERSION="v0.10.0"
+    fi
+
 #id -u显示用户ID,root用户的ID为0
 root=$(id -u)
 #脚本需要使用root用户执行
@@ -45,9 +64,19 @@ firewalld_stop()
     # 关闭防火墙
     systemctl disable firewalld
     systemctl stop firewalld
+    iptables -P FORWARD ACCEPT
+    iptables-save> /etc/sysconfig/iptables
     echo "Firewall disabled success!"
 }
 
+#
+#安装依赖环境
+#
+packages_install()
+{
+	yum install -y epel-release
+	yum install -y yum-utils device-mapper-persistent-data lvm2 net-tools conntrack-tools wget
+}
 #
 #安装docker
 #
@@ -58,14 +87,16 @@ docker_install()
 [docker-repo]
 name=Docker Repository
 baseurl=https://yum.dockerproject.org/repo/main/centos/7
-enabled=1
+enabled=0
 gpgcheck=0
 EOF
 
     #查看docker版本
     #yum list docker-engine showduplicates
     #安装docker
-    yum install -y docker-engine-1.12.6-1.el7.centos.x86_64
+   # yum install -y docker-ce.x86_64.18.06.1.ce-3.el7
+    yum reinstall https://mirrors.aliyun.com/docker-ce/linux/centos/7/x86_64/stable/Packages/docker-ce-selinux-17.03.2.ce-1.el7.centos.noarch.rpm  -y
+    yum reinstall https://mirrors.aliyun.com/docker-ce/linux/centos/7/x86_64/stable/Packages/docker-ce-17.03.2.ce-1.el7.centos.x86_64.rpm  -y
     echo "Docker installed successfully!"
     #docker存储目录
     if [ ! -n "$DOCKER_GRAPH" ]; then
@@ -73,7 +104,7 @@ EOF
     fi
     #docker加速器
     if [ ! -n "$DOCKER_MIRRORS" ]; then
-        export DOCKER_MIRRORS="https://5md0553g.mirror.aliyuncs.com"
+        export DOCKER_MIRRORS="https://2j9d3t2k.mirror.aliyuncs.com"
     fi
     # 如果/etc/docker目录不存在，就创建目录
     if [ ! -d "/etc/docker" ]; then
@@ -98,15 +129,7 @@ EOF
 #
 kube_rpm()
 {
-    if [ ! -n "$KUBE_VERSION" ]; then
-        export KUBE_VERSION="1.9.1"
-    fi
-    if [ ! -n "$KUBE_CNI_VERSION" ]; then
-        export KUBE_CNI_VERSION="0.6.0"
-    fi
-    if [ ! -n "$SOCAT_VERSION" ]; then
-        export SOCAT_VERSION="1.7.3.2"
-    fi
+
     export OSS_URL="http://centos-k8s.oss-cn-hangzhou.aliyuncs.com/rpm/"${KUBE_VERSION}"/"
     export RPM_KUBEADM="kubeadm-"${KUBE_VERSION}"-0.x86_64.rpm"
     export RPM_KUBECTL="kubectl-"${KUBE_VERSION}"-0.x86_64.rpm"
@@ -122,22 +145,36 @@ kube_rpm()
 }
 
 #
+#kube yum install
+#
+kube_yum_install()
+{
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+
+#增加对ipvs的支持
+yum install -y kubelet kubeadm kubectl ipvsadm
+systemctl daemon-reload
+systemctl enable kubelet
+echo "kubelet kubeadm kubectl ipvsadm installed successfully!"
+}
+
+
+#
 #配置docker镜像
 #
 kube_repository()
 {
-    if [ ! -n "$ETCD_VERSION" ]; then
-        export ETCD_VERSION="3.1.10"
-    fi
-    if [ ! -n "$PAUSE_VERSION" ]; then
-        export PAUSE_VERSION="3.0"
-    fi
-    if [ ! -n "$FLANNEL_VERSION" ]; then
-        export FLANNEL_VERSION="v0.9.1"
-    fi
-
     #KUBE_REPO_PREFIX环境变量已经失效，需要通过MasterConfiguration对象进行设置
-    export KUBE_REPO_PREFIX=registry.cn-hangzhou.aliyuncs.com/szss_k8s
+    #export KUBE_REPO_PREFIX=registry.cn-hangzhou.aliyuncs.com/szss_k8s
+    export KUBE_REPO_PREFIX=registry.cn-hangzhou.aliyuncs.com/k8sth
 }
 
 #
@@ -159,43 +196,52 @@ net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 vm.swappiness=0
 EOF
-    modprobe br_netfilter
+   # modprobe br_netfilter
     # 生效配置
     sysctl -p /etc/sysctl.d/k8s.conf
     echo "Network configuration success!"
+# 加载ipvs相关内核模块，仅对k8s v1.11及以上版本
+# 如果重新开机，需要重新加载
+modprobe ip_vs
+modprobe ip_vs_rr
+modprobe ip_vs_wrr
+modprobe ip_vs_sh
+modprobe nf_conntrack_ipv4
+lsmod | grep ip_vs
     #kubelet kubeadm kubectl kubernetes-cni安装包
     kube_rpm
+    
 
     kube_repository
 
     #下载安装包
-    if [ ! -f $PWD"/"$RPM_KUBEADM ]; then
-        wget $RPM_KUBEADM_URL
-    fi
-    if [ ! -f $PWD"/"$RPM_KUBECTL ]; then
-        wget $RPM_KUBECTL_URL
-    fi
-    if [ ! -f $PWD"/"$RPM_KUBELET ]; then
-        wget $RPM_KUBELET_URL
-    fi
-    if [ ! -f $PWD"/"$RPM_KUBECNI ]; then
-        wget $RPM_KUBECNI_URL
-    fi
-    if [ ! -f $PWD"/"$RPM_SOCAT ]; then
-        wget $RPM_SOCAT_URL
-    fi
-    rpm -ivh $PWD"/"$RPM_KUBECNI $PWD"/"$RPM_SOCAT $PWD"/"$RPM_KUBEADM $PWD"/"$RPM_KUBECTL $PWD"/"$RPM_KUBELET
-    echo "kubelet kubeadm kubectl kubernetes-cni installed successfully!"
-
+  #  if [ ! -f $PWD"/"$RPM_KUBEADM ]; then
+  #      wget $RPM_KUBEADM_URL
+  #  fi
+  #  if [ ! -f $PWD"/"$RPM_KUBECTL ]; then
+  #      wget $RPM_KUBECTL_URL
+  #  fi
+  #  if [ ! -f $PWD"/"$RPM_KUBELET ]; then
+  #      wget $RPM_KUBELET_URL
+  #  fi
+  #  if [ ! -f $PWD"/"$RPM_KUBECNI ]; then
+  #      wget $RPM_KUBECNI_URL
+  #  fi
+  #  if [ ! -f $PWD"/"$RPM_SOCAT ]; then
+  #      wget $RPM_SOCAT_URL
+  #  fi
+  #  rpm -ivh $PWD"/"$RPM_KUBECNI $PWD"/"$RPM_SOCAT $PWD"/"$RPM_KUBEADM $PWD"/"$RPM_KUBECTL $PWD"/"$RPM_KUBELET
+  #  echo "kubelet kubeadm kubectl kubernetes-cni installed successfully!"
+    kube_yum_install
     sed -i 's/cgroup-driver=systemd/cgroup-driver=cgroupfs/g' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     echo "config cgroup-driver=cgroupfs success!"
 
+#指定puase镜像版本
     export KUBE_PAUSE_IMAGE=${KUBE_REPO_PREFIX}"/pause-amd64:${PAUSE_VERSION}"
-
-    cat > /etc/systemd/system/kubelet.service.d/20-pod-infra-image.conf <<EOF
-[Service]
-Environment="KUBELET_EXTRA_ARGS=--pod-infra-container-image=${KUBE_PAUSE_IMAGE}"
+    cat >/etc/sysconfig/kubelet<<EOF
+KUBELET_EXTRA_ARGS="--pod-infra-container-image=${KUBE_PAUSE_IMAGE}"
 EOF
+
     echo "config --pod-infra-container-image=${KUBE_PAUSE_IMAGE} success!"
 
     systemctl daemon-reload
@@ -213,6 +259,8 @@ kube_master_up(){
     selinux_disable
     #关闭防火墙
     firewalld_stop
+    #安装依赖包
+    packages_install
     #安装docker
     docker_install
     #安装RPM包
@@ -225,21 +273,51 @@ kube_master_up(){
     # 参考：https://kubernetes.io/docs/reference/generated/kubeadm/
     export KUBE_ETCD_IMAGE=${KUBE_REPO_PREFIX}"/etcd-amd64:${ETCD_VERSION}"
 
-    # 如果使用etcd集群，请使用etcd.endpoints配置
-    cat > /etc/kubernetes/kubeadm.conf <<EOF
-apiVersion: kubeadm.k8s.io/v1alpha1
+cat > /etc/kubernetes/kubeadm.conf <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha2
 kind: MasterConfiguration
 kubernetesVersion: v${KUBE_VERSION}
-api:
-    advertiseAddress: ${MASTER_ADDRESS}
-etcd:
-    image: ${KUBE_ETCD_IMAGE}
-networking:
-    serviceSubnet: 10.96.0.0/12
-    podSubnet: 10.244.0.0/16
 imageRepository: ${KUBE_REPO_PREFIX}
-tokenTTL: 0s
-token: ${KUBE_TOKEN}
+
+apiServerCertSANs:
+- "k8s-master"
+- "k8s-node1"
+- "k8s-node2"
+- "170.30.10.50"
+- "127.0.0.1"
+
+api:
+  advertiseAddress: ${MASTER_ADDRESS}
+# controlPlaneEndpoint: 11.11.11.110:8443 //对外集群IP
+
+etcd:
+  local:
+    extraArgs:
+      listen-client-urls: "https://127.0.0.1:2379,https://${MASTER_ADDRESS}:2379"
+      advertise-client-urls: "https://${MASTER_ADDRESS}:2379"
+      listen-peer-urls: "https://${MASTER_ADDRESS}:2380"
+      initial-advertise-peer-urls: "https://${MASTER_ADDRESS}:2380"
+      initial-cluster: "k8s-master=https://${MASTER_ADDRESS}:2380"
+    serverCertSANs:
+      - k8s-master
+      - ${MASTER_ADDRESS}
+    peerCertSANs:
+      - k8s-master
+      - ${MASTER_ADDRESS}
+
+controllerManagerExtraArgs:
+  node-monitor-grace-period: 10s
+  pod-eviction-timeout: 10s
+
+networking:
+  podSubnet: 10.244.0.0/16
+  
+kubeProxy:
+  config:
+    mode: ipvs
+    #mode: iptables
+featureGates:
+  CoreDNS: true
 EOF
 
     kubeadm init --config /etc/kubernetes/kubeadm.conf --skip-preflight-checks
