@@ -97,9 +97,9 @@ EOF
     #查看docker版本
     #yum list docker-engine showduplicates
     #安装docker
-   # yum install -y docker-ce.x86_64.18.06.1.ce-3.el7
-    yum reinstall https://mirrors.aliyun.com/docker-ce/linux/centos/7/x86_64/stable/Packages/docker-ce-selinux-17.03.2.ce-1.el7.centos.noarch.rpm  -y
-    yum reinstall https://mirrors.aliyun.com/docker-ce/linux/centos/7/x86_64/stable/Packages/docker-ce-17.03.2.ce-1.el7.centos.x86_64.rpm  -y
+    #yum install -y docker-engine-17.03.1.ce-1.el7
+    #yum install https://mirrors.aliyun.com/docker-ce/linux/centos/7/x86_64/stable/Packages/docker-ce-selinux-17.03.3.ce-1.el7.noarch.rpm  -y
+    yum install https://mirrors.aliyun.com/docker-ce/linux/centos/7/x86_64/stable/Packages/docker-ce-17.09.1.ce-1.el7.centos.x86_64.rpm  -y
     echo "Docker installed successfully!"
     #docker存储目录
     if [ ! -n "$DOCKER_GRAPH" ]; then
@@ -191,7 +191,6 @@ modprobe ip_vs_sh
 modprobe nf_conntrack_ipv4
 lsmod | grep ip_vs
     #kubelet kubeadm kubectl kubernetes-cni安装包
-    kube_rpm
     
 
     kube_repository
@@ -252,7 +251,7 @@ apiServerCertSANs:
 
 api:
   advertiseAddress: ${MASTER_ADDRESS}
-# controlPlaneEndpoint: 11.11.11.110:8443 //对外集群IP
+  controlPlaneEndpoint: ""
 
 etcd:
   local:
@@ -280,11 +279,10 @@ kubeProxy:
   config:
     mode: ipvs
     #mode: iptables
-featureGates:
-  CoreDNS: true
 EOF
 
-    kubeadm init --config /etc/kubernetes/kubeadm.conf --skip-preflight-checks
+    #kubeadm init --config /etc/kubernetes/kubeadm.conf --skip-preflight-checks
+    kubeadm init --config /etc/kubernetes/kubeadm.conf
 
     # $HOME/.kube目录不存在就创建
     if [ ! -d "$HOME/.kube" ]; then
@@ -328,8 +326,8 @@ kube_slave_up()
     fi
 
     kubeadm join --token ${KUBE_TOKEN} \
-    --discovery-token-unsafe-skip-ca-verification \
-    --skip-preflight-checks \
+    --discovery-token-ca-cert-hash \
+#    --skip-preflight-checks \
     ${MASTER_ADDRESS}:6443
     echo "Join kubernetes cluster success!"
 }

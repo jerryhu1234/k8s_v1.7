@@ -12,7 +12,7 @@ spec:
         k8s-app: grafana
     spec:
       nodeSelector:
-        kubernetes.io/hostname: k8s-dev-node1
+        kubernetes.io/hostname: k8s-node1
       containers:
       - name: grafana
         #image: registry.cn-hangzhou.aliyuncs.com/inspur_research/heapster-grafana-amd64:v4.4.3
@@ -47,10 +47,10 @@ spec:
           # If you're only using the API Server proxy, set this value instead:
           # value: /api/v1/namespaces/kube-system/services/monitoring-grafana/proxy
           value: /
-        resources:
-          limits:
-            cpu: 1
-            memory: 1Gi
+#        resources:
+#          limits:
+#            cpu: 10Mi
+#            memory: 1Gi
         securityContext:
           privileged: true
       volumes:
@@ -58,9 +58,9 @@ spec:
         hostPath:
           path: /etc/ssl/certs
       - name: grafana-storage
-#        emptyDir: {}
-        hostPath:
-          path: /var/datas
+        emptyDir: {}
+#        hostPath:
+#          path: /var/lib/grafana
       - name: grafana-conf-volume
         configMap:
           name: grafana-conf
