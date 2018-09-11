@@ -1,3 +1,6 @@
+#k8s v1.11.2
+#ipvsadm,docker-ce,kubelet,kubeadm,kubectl安装
+#仅支持centos7安装的单机安装
 #!/usr/bin/env bash
 
 #set -x
@@ -125,26 +128,6 @@ EOF
 }
 
 #
-#kubelet kubeadm kubectl kubernetes-cni安装包
-#
-kube_rpm()
-{
-
-    export OSS_URL="http://centos-k8s.oss-cn-hangzhou.aliyuncs.com/rpm/"${KUBE_VERSION}"/"
-    export RPM_KUBEADM="kubeadm-"${KUBE_VERSION}"-0.x86_64.rpm"
-    export RPM_KUBECTL="kubectl-"${KUBE_VERSION}"-0.x86_64.rpm"
-    export RPM_KUBELET="kubelet-"${KUBE_VERSION}"-0.x86_64.rpm"
-    export RPM_KUBECNI="kubernetes-cni-"${KUBE_CNI_VERSION}"-0.x86_64.rpm"
-    export RPM_SOCAT="socat-"${SOCAT_VERSION}"-2.el7.x86_64.rpm"
-
-    export RPM_KUBEADM_URL=${OSS_URL}${RPM_KUBEADM}
-    export RPM_KUBECTL_URL=${OSS_URL}${RPM_KUBECTL}
-    export RPM_KUBELET_URL=${OSS_URL}${RPM_KUBELET}
-    export RPM_KUBECNI_URL=${OSS_URL}${RPM_KUBECNI}
-    export RPM_SOCAT_URL=${OSS_URL}${RPM_SOCAT}
-}
-
-#
 #kube yum install
 #
 kube_yum_install()
@@ -173,7 +156,6 @@ echo "kubelet kubeadm kubectl ipvsadm installed successfully!"
 kube_repository()
 {
     #KUBE_REPO_PREFIX环境变量已经失效，需要通过MasterConfiguration对象进行设置
-    #export KUBE_REPO_PREFIX=registry.cn-hangzhou.aliyuncs.com/szss_k8s
     export KUBE_REPO_PREFIX=registry.cn-hangzhou.aliyuncs.com/k8sth
 }
 
@@ -214,24 +196,6 @@ lsmod | grep ip_vs
 
     kube_repository
 
-    #下载安装包
-  #  if [ ! -f $PWD"/"$RPM_KUBEADM ]; then
-  #      wget $RPM_KUBEADM_URL
-  #  fi
-  #  if [ ! -f $PWD"/"$RPM_KUBECTL ]; then
-  #      wget $RPM_KUBECTL_URL
-  #  fi
-  #  if [ ! -f $PWD"/"$RPM_KUBELET ]; then
-  #      wget $RPM_KUBELET_URL
-  #  fi
-  #  if [ ! -f $PWD"/"$RPM_KUBECNI ]; then
-  #      wget $RPM_KUBECNI_URL
-  #  fi
-  #  if [ ! -f $PWD"/"$RPM_SOCAT ]; then
-  #      wget $RPM_SOCAT_URL
-  #  fi
-  #  rpm -ivh $PWD"/"$RPM_KUBECNI $PWD"/"$RPM_SOCAT $PWD"/"$RPM_KUBEADM $PWD"/"$RPM_KUBECTL $PWD"/"$RPM_KUBELET
-  #  echo "kubelet kubeadm kubectl kubernetes-cni installed successfully!"
     kube_yum_install
     sed -i 's/cgroup-driver=systemd/cgroup-driver=cgroupfs/g' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     echo "config cgroup-driver=cgroupfs success!"
@@ -282,8 +246,8 @@ imageRepository: ${KUBE_REPO_PREFIX}
 apiServerCertSANs:
 - "k8s-master"
 - "k8s-node1"
-- "k8s-node2"
 - "170.30.10.50"
+- "170.30.10.57"
 - "127.0.0.1"
 
 api:
@@ -340,7 +304,7 @@ EOF
         rm -rf $HOME/kube-flannel.yml
     fi
     wget -P $HOME/ https://raw.githubusercontent.com/coreos/flannel/${FLANNEL_VERSION}/Documentation/kube-flannel.yml
-    sed -i 's/quay.io\/coreos\/flannel/registry.cn-hangzhou.aliyuncs.com\/szss_k8s\/flannel/g' $HOME/kube-flannel.yml
+    sed -i 's/quay.io\/coreos\/flannel/registry.cn-shanghai.aliyuncs.com\/gcr-k8s\/flannel/g' $HOME/kube-flannel.yml
     kubectl --namespace kube-system apply -f $HOME/kube-flannel.yml
     echo "Flannel installed successfully!"
 }
