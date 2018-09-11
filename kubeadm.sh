@@ -80,6 +80,19 @@ packages_install()
 	yum install -y epel-release
 	yum install -y yum-utils device-mapper-persistent-data lvm2 net-tools conntrack-tools wget
 }
+
+#
+#命令补全
+#
+kubectl_completion()
+{
+	yum install -y bash-completion
+	locate bash_completion
+	/usr/share/bash-completion/bash_completion
+	source /usr/share/bash-completion/bash_completion
+	source <(kubectl completion bash)
+}
+
 #
 #安装docker
 #
@@ -196,6 +209,7 @@ lsmod | grep ip_vs
     kube_repository
 
     kube_yum_install
+    kubectl_completion
     sed -i 's/cgroup-driver=systemd/cgroup-driver=cgroupfs/g' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     echo "config cgroup-driver=cgroupfs success!"
 
