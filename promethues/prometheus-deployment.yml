@@ -77,10 +77,27 @@ metadata:
   name: prometheus-pvc
   namespace: kube-system
   annotations:
-    volume.beta.kubernetes.io/storage-class: managed-nfs-storage-kafka
+    volume.beta.kubernetes.io/storage-class: managed-nfs-storage-prometheus
 spec:
   accessModes:
     - ReadWriteOnce  #必须写ReadWriteOnce,否则报错。
   resources:
     requests:
       storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-pv
+  namespace: kube-system
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  storageClassName: managed-nfs-storage-prometheus
+  nfs:
+    path: /data/prometheus
+    server: 172.30.10.66
