@@ -87,10 +87,9 @@ packages_install()
 kubectl_completion()
 {
 	yum install -y bash-completion
-	locate bash_completion
-	/usr/share/bash-completion/bash_completion
 	source /usr/share/bash-completion/bash_completion
-	source <(kubectl completion bash)
+	source < kubectl completion bash
+	echo "source <(kubectl completion bash)" >> ~/.bashrc
 }
 
 #
@@ -209,7 +208,7 @@ lsmod | grep ip_vs
     kube_repository
 
     kube_yum_install
-    kubectl_completion
+#    kubectl_completion
     sed -i 's/cgroup-driver=systemd/cgroup-driver=cgroupfs/g' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     echo "config cgroup-driver=cgroupfs success!"
 
@@ -258,9 +257,9 @@ imageRepository: ${KUBE_REPO_PREFIX}
 
 apiServerCertSANs:
 - "k8s-master"
-- "k8s-node1"
-- "170.30.10.50"
-- "170.30.10.57"
+- "k8s-node-1"
+- "192.168.1.5"
+- "192.168.1.16"
 - "127.0.0.1"
 
 api:
@@ -340,7 +339,8 @@ kube_slave_up()
     fi
 
     kubeadm join --token ${KUBE_TOKEN} \
-    --discovery-token-ca-cert-hash \
+     --discovery-token-unsafe-skip-ca-verification \
+#    --discovery-token-ca-cert-hash \
 #    --skip-preflight-checks \
     ${MASTER_ADDRESS}:6443
     echo "Join kubernetes cluster success!"
